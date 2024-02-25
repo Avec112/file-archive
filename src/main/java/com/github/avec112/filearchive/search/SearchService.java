@@ -9,7 +9,6 @@ import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.github.avec112.filearchive.type.CustomFile;
-import com.vaadin.pro.licensechecker.Product;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
@@ -19,13 +18,13 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.List;
 
-//@Service
-public class Searcher {
+@Service
+public class SearchService {
 
     private final RestClient restClient;
     private final ElasticsearchClient client;
 
-    public Searcher() {
+    public SearchService() {
         restClient = RestClient
                 .builder(HttpHost.create("http://localhost:9200"))
                 .setDefaultHeaders(new Header[] {
@@ -38,19 +37,21 @@ public class Searcher {
     }
 
     public SearchResponse<CustomFile> search(String searchTerm) throws IOException {
-        SearchResponse<CustomFile> response = client.search(s -> s
+
+        return client.search(s -> s
                 .index("archive")
                 .query(q -> q
                         .match(t -> t
                                 .field("fileName")
+                                .field("content")
+//                                .fuzziness("auto")
                                 .query(searchTerm)
                         )
                 ),
                 CustomFile.class
         );
-
-        return response;
     }
+
 
 
     public void close() {
@@ -62,9 +63,9 @@ public class Searcher {
     }
 
     public static void main(String[] args) {
-        Searcher searcher = new Searcher();
+        SearchService searcher = new SearchService();
         try {
-            SearchResponse<CustomFile> response = searcher.search("Document1.pdf ");
+            SearchResponse<CustomFile> response = searcher.search("Samantha ");
 
             TotalHits total = response.hits().total();
             boolean isExactResult = total.relation() == TotalHitsRelation.Eq;

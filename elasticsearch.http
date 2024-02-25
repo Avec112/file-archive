@@ -1,4 +1,9 @@
-DELETE http://localhost:9200/archive
+###
+GET http://localhost:9200/archive/_search?q=doc*
+Authorization: Basic ZWxhc3RpYzpjaGFuZ2VtZQ==
+
+###
+GET http://localhost:9200/archive/_search?q=NÆRINGSSTOFFER
 Authorization: Basic ZWxhc3RpYzpjaGFuZ2VtZQ==
 
 ###
@@ -6,5 +11,5 @@ GET http://localhost:9200/_cat/indices?v
 Authorization: Basic ZWxhc3RpYzpjaGFuZ2VtZQ==
 
 ###
-GET http://localhost:9200/archive/_search?q=doc*
+DELETE http://localhost:9200/archive
 Authorization: Basic ZWxhc3RpYzpjaGFuZ2VtZQ==
