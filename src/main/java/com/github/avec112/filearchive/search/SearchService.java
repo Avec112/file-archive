@@ -2,13 +2,10 @@ package com.github.avec112.filearchive.search;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.elasticsearch.core.search.TotalHits;
-import co.elastic.clients.elasticsearch.core.search.TotalHitsRelation;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
-import com.github.avec112.filearchive.type.CustomFile;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
@@ -16,7 +13,6 @@ import org.elasticsearch.client.RestClient;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.List;
 
 @Service
 public class SearchService {
@@ -36,19 +32,53 @@ public class SearchService {
         client = new ElasticsearchClient(transport);
     }
 
-    public SearchResponse<CustomFile> search(String searchTerm) throws IOException {
+    public SearchResponse<JsonNode> search(String searchTerm) throws IOException {
 
         return client.search(s -> s
-                .index("archive")
-                .query(q -> q
-                        .match(t -> t
-                                .field("fileName")
-                                .field("content")
-//                                .fuzziness("auto")
-                                .query(searchTerm)
+                        .index("custom", "profile") // Specify both indices
+                        .query(query -> query
+                                .bool(boolQuery -> boolQuery
+                                        .should(should -> should
+                                                .wildcard(wildcardQuery -> wildcardQuery
+                                                        .field("fileName") // Relevant for "custom"
+                                                        .value(searchTerm)
+                                                )
+                                        )
+                                        .should(should -> should
+                                                .wildcard(wildcardQuery -> wildcardQuery
+                                                        .field("content") // Relevant for both "custom" and "profile"
+                                                        .value(searchTerm)
+                                                )
+                                        )
+                                        // Assuming "title", "ingress", and "filePath" are only relevant for "profile"
+                                        .should(should -> should
+                                                .wildcard(wildcardQuery -> wildcardQuery
+                                                        .field("title")
+                                                        .value(searchTerm)
+                                                )
+                                        )
+                                        .should(should -> should
+                                                .wildcard(wildcardQuery -> wildcardQuery
+                                                        .field("ingress")
+                                                        .value(searchTerm)
+                                                )
+                                        )
+                                        .should(should -> should
+                                                .wildcard(wildcardQuery -> wildcardQuery
+                                                        .field("filePath")
+                                                        .value(searchTerm)
+                                                )
+                                        )
+                                )
                         )
-                ),
-                CustomFile.class
+                        .highlight(highlight -> highlight
+                                .fields("fineName", fieldHighlight -> fieldHighlight) // Adjust according to common fields
+                                .fields("ingress", fieldHighlight -> fieldHighlight) // Adjust according to common fields
+                                .fields("content", fieldHighlight -> fieldHighlight) // Adjust according to common fields
+                                .preTags("<strong style='color: red;'>")
+                                .postTags("</strong>")
+                        ),
+                JsonNode.class // Using Object as a generic type; consider a common interface or base class
         );
     }
 
@@ -62,31 +92,31 @@ public class SearchService {
         }
     }
 
-    public static void main(String[] args) {
-        SearchService searcher = new SearchService();
-        try {
-            SearchResponse<CustomFile> response = searcher.search("Samantha ");
-
-            TotalHits total = response.hits().total();
-            boolean isExactResult = total.relation() == TotalHitsRelation.Eq;
-
-            if (isExactResult) {
-                System.out.println("There are " + total.value() + " results");
-            } else {
-                System.out.println("There are more than " + total.value() + " results");
-            }
-
-            List<Hit<CustomFile>> hits = response.hits().hits();
-            for (Hit<CustomFile> hit: hits) {
-                CustomFile customFile = hit.source();
-                System.out.println("Found product " + customFile + ", score " + hit.score());
-            }
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } finally {
-            searcher.close();
-        }
-    }
+//    public static void main(String[] args) {
+//        SearchService searcher = new SearchService();
+//        try {
+//            SearchResponse<CustomDocument> response = searcher.search("Samantha ");
+//
+//            TotalHits total = response.hits().total();
+//            boolean isExactResult = total.relation() == TotalHitsRelation.Eq;
+//
+//            if (isExactResult) {
+//                System.out.println("There are " + total.value() + " results");
+//            } else {
+//                System.out.println("There are more than " + total.value() + " results");
+//            }
+//
+//            List<Hit<CustomDocument>> hits = response.hits().hits();
+//            for (Hit<CustomDocument> hit: hits) {
+//                CustomDocument customFile = hit.source();
+//                System.out.println("Found product " + customFile + ", score " + hit.score());
+//            }
+//
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        } finally {
+//            searcher.close();
+//        }
+//    }
 
 }

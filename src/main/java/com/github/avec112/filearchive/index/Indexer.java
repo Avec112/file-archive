@@ -2,15 +2,15 @@ package com.github.avec112.filearchive.index;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Result;
-import co.elastic.clients.elasticsearch.core.BulkRequest;
-import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
-import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
-import co.elastic.clients.elasticsearch.ingest.simulate.Document;
+import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
+import co.elastic.clients.transport.endpoints.BooleanResponse;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
-import com.github.avec112.filearchive.type.CustomFile;
+import com.github.avec112.filearchive.parser.ProfileDocumentParser;
+import com.github.avec112.filearchive.type.CustomDocument;
+import com.github.avec112.filearchive.type.ProfileDocument;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
@@ -19,11 +19,11 @@ import org.apache.tika.exception.TikaException;
 import org.elasticsearch.client.RestClient;
 import org.xml.sax.SAXException;
 
-import java.io.File;
-import java.io.IOException;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 
 public class Indexer {
 
@@ -42,39 +42,69 @@ public class Indexer {
         client = new ElasticsearchClient(transport);
     }
 
-    public void indexDocuments(String directoryPath, String indexName) throws IOException, TikaException, SAXException {
-        Tika tika = new Tika();
+    public void indexDocuments(String directoryPath) throws IOException, TikaException, SAXException {
 
-        File dir = new File(directoryPath);
-        File[] files = dir.listFiles((d, name) -> name.endsWith(".pdf"));
+        List<Path> pdfFiles = Files.walk(Paths.get(directoryPath))
+                .filter(p -> p.toString().endsWith(".pdf"))
+                .toList();
 
-
-        if (files != null) {
-            for (File file : files) {
-                System.out.printf("Found file %s%n", file);
-                String fileName = file.getName();
-                String parsedText = tika.parseToString(file);
-
-                CustomFile customFile = new CustomFile();
-                customFile.setFileName(fileName);
-                customFile.setContent(parsedText);
-
-                indexDocument(customFile, indexName);
-
+        for (Path path : pdfFiles) {
+            // document type profile
+            if(path.toString().contains("profile")) {
+                indexProfileDocument(path);
+            } else {
+                indexOtherDocument(path);
             }
         }
+
     }
 
-    private void indexDocument(CustomFile customFile, String indexName) throws IOException {
+    private void indexProfileDocument(Path path) throws TikaException, IOException, SAXException {
 
-        IndexResponse indexResponse = client.index(i -> i
-                .index(indexName)
-                .id(customFile.getFileName())
-                .document(customFile)
+        ProfileDocumentParser parser = new ProfileDocumentParser();
+
+        ProfileDocument document = parser.parseDocument(path);
+
+        indexDocument(path, document, "profile");
+    }
+
+
+    private void indexOtherDocument(Path path) throws IOException, TikaException {
+
+        Tika tika = new Tika();
+        File file = path.toFile();
+        String fileName = file.getName();
+        String parsedText = tika.parseToString(file);
+
+        CustomDocument customDocument = new CustomDocument();
+        customDocument.setFileName(fileName);
+        customDocument.setContent(parsedText);
+        customDocument.setFilePath(file.getPath());
+
+        indexDocument(path, customDocument, "custom");
+    }
+
+    private void indexDocument(Path path, Object document, String index) throws IOException {
+
+        // Check if the index exists, create if not
+        BooleanResponse exists = client.indices().exists(e -> e.index(index));
+        if (!exists.value()) {
+            CreateIndexResponse createIndexResponse = client.indices().create(c -> c.index(index));
+            // Handle create index response if needed
+            if (createIndexResponse.acknowledged()) {
+                System.out.println("Index created: " + index);
+            } else {
+                System.out.println("Failed to create index: " + index);
+            }
+        }
+
+        IndexResponse response = client.index(i -> i
+                .index(index)
+                .document(document)
         );
 
-        Result result = indexResponse.result();
-        System.out.printf("Result:%s%n", result.jsonValue());
+        Result result = response.result();
+        System.out.printf("%s: %s%n", result.jsonValue(), path);
     }
 
     public void close() {
@@ -88,7 +118,7 @@ public class Indexer {
     public static void main(String[] args) {
         Indexer indexer = new Indexer();
         try {
-            indexer.indexDocuments("pdf/", "archive");
+            indexer.indexDocuments("pdf/");
         } catch (IOException | TikaException | SAXException e) {
             throw new RuntimeException(e);
         } finally {

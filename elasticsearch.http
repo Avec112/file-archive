@@ -1,15 +1,15 @@
-###
-GET http://localhost:9200/archive/_search?q=doc*
+### Search profile index
+GET http://localhost:9200/profile/_search?q=He*
 Authorization: Basic ZWxhc3RpYzpjaGFuZ2VtZQ==
 
-###
-GET http://localhost:9200/archive/_search?q=NÆRINGSSTOFFER
+### Search custom index
+GET http://localhost:9200/custom/_search?q=NÆRINGSSTOFFER
 Authorization: Basic ZWxhc3RpYzpjaGFuZ2VtZQ==
 
-###
+### Check indexes
 GET http://localhost:9200/_cat/indices?v
 Authorization: Basic ZWxhc3RpYzpjaGFuZ2VtZQ==
 
-###
-DELETE http://localhost:9200/archive
+### Delete indexes
+DELETE http://localhost:9200/custom,profile
 Authorization: Basic ZWxhc3RpYzpjaGFuZ2VtZQ==

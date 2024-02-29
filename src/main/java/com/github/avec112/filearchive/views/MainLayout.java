@@ -9,12 +9,16 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Header;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
+import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.theme.Theme;
+import com.vaadin.flow.theme.lumo.Lumo;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
-public class MainLayout extends AppLayout {
+@Theme(variant = Lumo.DARK)
+public class MainLayout extends AppLayout implements AppShellConfigurator {
 
     private H2 viewTitle;
 
@@ -35,7 +39,7 @@ public class MainLayout extends AppLayout {
     }
 
     private void addDrawerContent() {
-        H1 appName = new H1("Vaadin-24");
+        H1 appName = new H1("PDFSearch");
         appName.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE);
         Header header = new Header(appName);
 
@@ -47,7 +51,7 @@ public class MainLayout extends AppLayout {
     private SideNav createNavigation() {
         SideNav nav = new SideNav();
 
-        nav.addItem(new SideNavItem("Search", SearchView.class, VaadinIcon.GLOBE.create()));
+        nav.addItem(new SideNavItem("Search", SearchView.class, VaadinIcon.SEARCH.create()));
 
         return nav;
     }
