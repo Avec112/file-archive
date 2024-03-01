@@ -10,6 +10,7 @@ import com.github.avec112.filearchive.search.SearchService;
 import com.github.avec112.filearchive.type.CustomDocument;
 import com.github.avec112.filearchive.type.ProfileDocument;
 import com.github.avec112.filearchive.views.MainLayout;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.html.*;
@@ -36,9 +37,12 @@ import java.util.Map;
 @RouteAlias(value = "", layout = MainLayout.class)
 public class SearchView extends VerticalLayout {
     private final SearchService searchService;
-    private TextField searchField;
-    private VerticalLayout resultLayout;
-    private Element iframe;
+    private final TextField searchField;
+    private final VerticalLayout resultLayout;
+
+    private Div currentlySelectedSearchResult;
+    private final Div iframeContainer;
+    private final Element iframe;
 
     public SearchView(SearchService searchService) {
         this.searchService = searchService;
@@ -54,24 +58,25 @@ public class SearchView extends VerticalLayout {
         resultLayout.setWidthFull();
         resultLayout.setPadding(false);
 
-//        iframe = new Element("iframe");
-//        iframe.setAttribute("width", "800px");
-//        iframe.setAttribute("height", "600px");
-//
-//        Div iframeDiv = new Div();
-//        iframeDiv.getElement().appendChild(iframe);
+        iframe = new Element("iframe");
+        iframe.setAttribute("class", "iframe-A4");
+
+        iframeContainer = new Div();
+        iframeContainer.setVisible(false);
+        iframeContainer.getElement().appendChild(iframe);
 
         add(
                 searchField,
-//                new HorizontalLayout(
-                        resultLayout
-//                        iframeDiv
-//                )
+                new HorizontalLayout(
+                        resultLayout,
+                        iframeContainer
+                )
         );
     }
 
     private void searchEvent() {
         resultLayout.removeAll();
+        iframeContainer.setVisible(false);
 
         String searchTerm = searchField.getValue();
 
@@ -128,7 +133,6 @@ public class SearchView extends VerticalLayout {
                 String resourceURL = VaadinSession.getCurrent().getResourceRegistry()
                         .registerResource(resource).getResourceUri().toString();
 
-//                iframe.setAttribute("src", resourceURL); // todo
 
                 Anchor anchor = new Anchor(resource, file.getName());
                 anchor.setTarget(AnchorTarget.BLANK);
@@ -147,8 +151,7 @@ public class SearchView extends VerticalLayout {
                 documentTypeBadge.getElement().getThemeList().add("badge primary small " + documentTypeColor);
                 Span scoreSpan = new Span("Score: " + hit.score());
                 scoreSpan.getStyle().setColor("#658770");
-                Div resultDiv = new Div(
-//                        new Hr(),
+                Div resultDiv = createClickableDiv(resourceURL,
                         anchor,
                         highlightLayout,
                         new HorizontalLayout(
@@ -156,7 +159,6 @@ public class SearchView extends VerticalLayout {
                                 documentTypeBadge
                         ),
                         new Div(scoreSpan)
-//                            iframeDiv
                 );
                 resultDiv.setWidthFull();
                 resultLayout.add(resultDiv);
@@ -165,10 +167,32 @@ public class SearchView extends VerticalLayout {
 
 
         } catch (IOException ex) {
-            Notification.show(ExceptionUtils.getRootCauseMessage(ex), 5000, Notification.Position.MIDDLE); // TODO
+            Notification.show(ExceptionUtils.getRootCauseMessage(ex), 5000, Notification.Position.MIDDLE);
         }
     }
 
+    private Div createClickableDiv(String resourceUrl, Component...components) {
+        Div clickedDiv = new Div(components);
+        clickedDiv.addClassNames("search-result-div", "hover-hand");
+        clickedDiv.addClickListener(e -> onDivClick(clickedDiv, resourceUrl));
+        return clickedDiv;
+    }
+
+    private void onDivClick(Div clickedDiv, String resourceURL) {
+        if (currentlySelectedSearchResult != null) {
+            currentlySelectedSearchResult.removeClassName("selected-style");
+        }
+        if (!clickedDiv.equals(currentlySelectedSearchResult)) {
+            clickedDiv.addClassName("selected-style");
+            currentlySelectedSearchResult = clickedDiv;
+            iframeContainer.setVisible(true);
+            iframe.setAttribute("src", resourceURL);
+        } else {
+            currentlySelectedSearchResult = null; // Allow deselecting the current selection by clicking it again
+            iframeContainer.setVisible(false);
+            iframe.removeAttribute("src");
+        }
+    }
 
     private InputStream getPdfAsStream(File file) {
         try {

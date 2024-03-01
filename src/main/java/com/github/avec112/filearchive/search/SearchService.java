@@ -72,7 +72,7 @@ public class SearchService {
                                 )
                         )
                         .highlight(highlight -> highlight
-                                .fields("fineName", fieldHighlight -> fieldHighlight) // Adjust according to common fields
+                                .fields("fileName", fieldHighlight -> fieldHighlight) // Adjust according to common fields
                                 .fields("ingress", fieldHighlight -> fieldHighlight) // Adjust according to common fields
                                 .fields("content", fieldHighlight -> fieldHighlight) // Adjust according to common fields
                                 .preTags("<strong style='color: red;'>")

@@ -16,9 +16,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-
-@Theme(variant = Lumo.DARK)
-public class MainLayout extends AppLayout implements AppShellConfigurator {
+public class MainLayout extends AppLayout {
 
     private H2 viewTitle;
 

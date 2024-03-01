@@ -1,0 +1,23 @@
+@import url('./main-layout.css');
+/*@import url('./views/dashboard-view.css');*/
+
+/* TODO cant get to work */
+.hover-hand:hover {
+    cursor: pointer;
+    background-color: var(--lumo-contrast-5pct);
+}
+
+
+.selected-style {
+    background-color: var(--lumo-contrast-5pct);
+    border-right: 1px solid var(--lumo-primary-color);
+}
+
+.search-result-div {
+    padding: var(--lumo-space-xs);
+}
+
+.iframe-A4 {
+    width: 30vw;
+    height: calc(30vw * 1.414); /* A4 aspect ratio */
+}
