@@ -16,7 +16,7 @@
     <properties>
         <java.version>17</java.version>
         <vaadin.version>24.3.5</vaadin.version>
-        <tika.version>2.9.1</tika.version>
+        <tika.version>3.2.2</tika.version>
         <elasticsearch-java.version>8.12.2</elasticsearch-java.version>
         <jackson-databind.version>2.15.4</jackson-databind.version>
     </properties>
